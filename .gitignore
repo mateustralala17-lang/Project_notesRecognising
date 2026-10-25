@@ -25,3 +25,6 @@ x86/
 Thumbs.db
 desktop.ini
 .DS_Store
+venv/
+.venv/
+env/
