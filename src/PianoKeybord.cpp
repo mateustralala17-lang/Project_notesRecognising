@@ -33,3 +33,7 @@ void PianoKeyboard::highlightChords(const std::vector<ChordData>& chords){
     }
     std::cout << "====================================\n";
 }
+
+void PianoKeyboard::draw(){
+    
+}

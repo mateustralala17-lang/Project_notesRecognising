@@ -14,9 +14,9 @@ class AppController
         PianoKeyboard* myPiano;
         State currentState;
         ChordRecognizer chordRecognizer;
+        void updateAll();
     public:
         AppController(PianoKeyboard* p);
-        void updateAll();
         void press (int clickedPitch);
         void press (const ChordCommand& chord);
         void release (int clickedPitch);
