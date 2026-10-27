@@ -3,13 +3,13 @@
 using namespace std;
 
 void PianoKeyboard::clearHighlights(){
-    cout << "\n--- [ НОВЫЙ КАДР ОБНОВЛЕНИЯ ] ---\n" << endl;
+    cout << "\n--- [ НОВИЙ КАДР ОНОВЛЕННЯ ] ---\n" << endl;
 }
 
 void PianoKeyboard::highlightNotes(const std::set<int>& pitches){
-    cout << "[UI]: Горят клавиши (MIDI): ";
+    cout << "[UI]: Горят клавіші (MIDI): ";
     if (pitches.empty()) {
-        std::cout << "ничего не нажато\n";
+        std::cout << "нічого не натиснуто\n";
     return;
     }
 
@@ -20,15 +20,15 @@ void PianoKeyboard::highlightNotes(const std::set<int>& pitches){
 }
 
 void PianoKeyboard::highlightChords(const std::vector<ChordData>& chords){
-    std::cout << "[UI]: На экране горят аккорды:\n";
+    std::cout << "[UI]: На екрані горять акорди:\n";
     if (chords.empty()) {
-        std::cout << "      (нет распознанных аккордов)\n";
+        std::cout << "      (немає розпізнаних акордів)\n";
         return;
     }
 
     for (const ChordData& chord : chords) {
         std::cout << "      -> " << chord.chordType 
-                << " (Тоника: " << chord.rootNote 
+                << " (Тоніка: " << chord.rootNote 
                 << ", Бас: " << chord.lowestPitch << ")\n";
     }
     std::cout << "====================================\n";

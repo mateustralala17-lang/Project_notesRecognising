@@ -10,7 +10,7 @@ class PianoKeyboard : public UIComponent
     private:
 
     public:
-        PianoKeyboard();
+        PianoKeyboard() {};
         void draw() override;
         void clearHighlights();
         void highlightNotes(const std::set<int>& pitches);
