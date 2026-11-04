@@ -21,3 +21,16 @@ struct ChordCommand
     int inversionType;
     std::string chordType;
 };
+
+struct IntervalData
+{
+    int lowestPitch;
+    int distance;
+    std::string intervalType;
+};
+
+struct IntervalCommand
+{
+    int distance;
+    std::string intervalType;
+};
