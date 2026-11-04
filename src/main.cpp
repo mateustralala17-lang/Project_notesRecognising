@@ -16,7 +16,7 @@ int main()
     PianoKeyboard myPiano;
     AppController controller(&myPiano);
 
-    std::cout << "\n=== ТЕСТ 1: Визначення акорда по 3 нотам (До мажор) ===" << std::endl;
+    /*std::cout << "\n=== ТЕСТ 1: Визначення акорда по 3 нотам (До мажор) ===" << std::endl;
     controller.press(60); 
     controller.press(64); 
     controller.press(67); 
@@ -40,7 +40,7 @@ int main()
     controller.press(52);
     
     ChordCommand cMajor1stInv{0, 1, "major"}; 
-    controller.press(cMajor1stInv);
+    controller.press(cMajor1stInv);*/
 
     return 0;
 }

@@ -18,9 +18,6 @@ x86/
 *.vcxproj
 *.vcxproj.*
 .vscode/*
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/c_cpp_properties.json
 *.code-workspace
 Thumbs.db
 desktop.ini
