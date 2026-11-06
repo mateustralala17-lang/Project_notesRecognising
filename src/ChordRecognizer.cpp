@@ -1,7 +1,9 @@
 #include "../include/ChordRecognizer.h"
 #include <algorithm>
 #include <set>
+#include <vector>
 #include <iterator>
+#include "../include/MusicUtils.h"
 
 
 ChordRecognizer::ChordRecognizer(){
@@ -55,19 +57,15 @@ std::set<int> ChordRecognizer::getPhysicalNotes(const ChordData& chord){
     return physicalNotes;
 }
 
-ChordData ChordRecognizer::defineChord(const std::set<int>& pitches){
-    if (pitches.empty()){
-        return {-1, -1, -1, ""};
-    }
+ChordData ChordRecognizer::defineChord(const std::set<int>& subset){
     int rootNote = -1;
     std::set<int> chordTemplate;
-    int lowestPitch;
-    lowestPitch = *pitches.begin();
+    int lowestPitch = *subset.begin();
     int inversionType = 0;
     std::string chordType = "";
     bool found = false;
 
-    std::set<int> collapsedPitches = collapseToOctave(pitches);            
+    std::set<int> collapsedPitches = collapseToOctave(subset);            
     for (int candidateRoot : collapsedPitches){
         std::set<int> pitchesForComparison = inversionOfChord(collapsedPitches, candidateRoot);                
         for (const auto& i : chordTemplates){
@@ -110,4 +108,27 @@ std::set<int> ChordRecognizer::buildChord(const ChordCommand& cmdChord, const st
     chord.lowestPitch = anchorMidi;            
     
     return getPhysicalNotes(chord);
+}
+
+std::set<ChordData> ChordRecognizer::findAllChords(const std::set<int>& pitches) {
+    std::set<ChordData> results;
+
+    // 1. Ищем все трезвучия (комбинации по 3 ноты)
+    MusicUtils::forEachSubset(pitches, 3, [&](const std::set<int>& triad) {
+        ChordData data = defineChord(triad);
+        // Если вернулась не "пустышка", значит аккорд распознан
+        if (data.rootNote != -1) {
+            results.insert(data);
+        }
+    });
+
+    // 2. Ищем все септаккорды (комбинации по 4 ноты)
+    MusicUtils::forEachSubset(pitches, 4, [&](const std::set<int>& tetrad) {
+        ChordData data = defineChord(tetrad);
+        if (data.rootNote != -1) {
+            results.insert(data);
+        }
+    });
+
+    return results;
 }

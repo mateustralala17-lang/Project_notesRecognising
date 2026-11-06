@@ -14,5 +14,6 @@ class PianoKeyboard : public UIComponent
         void draw() override;
         void clearHighlights();
         void highlightNotes(const std::set<int>& pitches);
-        void highlightChords(const std::vector<ChordData>& chords);
+        void highlightChords(const std::set<ChordData>& chords);
+        void highlightIntervals(const std::set<IntervalData>& intervals);
 };

@@ -13,6 +13,12 @@ struct ChordData
                lowestPitch == other.lowestPitch && 
                chordType == other.chordType;
     }
+    bool operator<(const ChordData& other) const {
+        if (rootNote != other.rootNote) return rootNote < other.rootNote;
+        if (chordType != other.chordType) return chordType < other.chordType;
+        if (lowestPitch != other.lowestPitch) return lowestPitch < other.lowestPitch;
+        return inversionType < other.inversionType;
+    }
 };
 
 struct ChordCommand
@@ -27,6 +33,14 @@ struct IntervalData
     int lowestPitch;
     int distance;
     std::string intervalType;
+    bool operator==(const IntervalData& other) const {
+        return lowestPitch == other.lowestPitch && distance == other.distance;
+    }
+    bool operator<(const IntervalData& other) const {
+        if (lowestPitch != other.lowestPitch) return lowestPitch < other.lowestPitch;
+        if (distance != other.distance) return distance < other.distance;
+        return intervalType < other.intervalType;
+    }
 };
 
 struct IntervalCommand

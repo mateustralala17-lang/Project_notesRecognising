@@ -6,6 +6,7 @@
 #include "DataTypes.h"
 #include "ChordRecognizer.h"
 #include "PianoKeyboard.h"
+#include "IntervalRecognizer.h"
 #include "State.h"
 
 class AppController
@@ -14,6 +15,7 @@ class AppController
         PianoKeyboard* myPiano;
         State currentState;
         ChordRecognizer chordRecognizer;
+        IntervalRecognizer intervalRecognizer;
         void updateAll();
     public:
         AppController(PianoKeyboard* p);

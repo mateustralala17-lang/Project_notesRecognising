@@ -19,7 +19,7 @@ void PianoKeyboard::highlightNotes(const std::set<int>& pitches){
     std::cout << "\n";
 }
 
-void PianoKeyboard::highlightChords(const std::vector<ChordData>& chords){
+void PianoKeyboard::highlightChords(const std::set<ChordData>& chords){
     std::cout << "[UI]: На екрані горять акорди:\n";
     if (chords.empty()) {
         std::cout << "      (немає розпізнаних акордів)\n";
@@ -30,6 +30,21 @@ void PianoKeyboard::highlightChords(const std::vector<ChordData>& chords){
         std::cout << "      -> " << chord.chordType 
                 << " (Тоніка: " << chord.rootNote 
                 << ", Бас: " << chord.lowestPitch << ")\n";
+    }
+    std::cout << "====================================\n";
+}
+
+void PianoKeyboard::highlightIntervals(const std::set<IntervalData>& intervals){
+    std::cout << "[UI]: На екрані горять інтервали:\n";
+    if (intervals.empty()) {
+        std::cout << "      (немає розпізнаних інтервалів)\n";
+        return;
+    }
+
+    for (const IntervalData& interval : intervals) {
+        std::cout << "      -> " << interval.intervalType 
+                << " (Відстань: " << interval.distance 
+                << ", Початкова нота: " << interval.lowestPitch << ")\n";
     }
     std::cout << "====================================\n";
 }

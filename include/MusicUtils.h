@@ -9,8 +9,7 @@ namespace MusicUtils {
     void forEachSubset(const std::set<int>& allPitches, int k, Func callback) {
         std::vector<int> pitches(allPitches.begin(), allPitches.end());
         int n = pitches.size();
-        
-        // Защита: если просят комбинации больше, чем есть нот, или нулевые/отрицательные — выходим
+                
         if (k <= 0 || k > n) return; 
 
         // Инициализируем маску. Сначала создаем вектор из k единиц.
@@ -20,15 +19,13 @@ namespace MusicUtils {
         bitmask.resize(n, 0);
 
         do {
-            std::set<int> subset;
-            // Проходим по всей маске. Если видим 1 — берем ноту по этому индексу.
+            std::set<int> subset;            
             for (int i = 0; i < n; ++i) {
                 if (bitmask[i] == 1) {
                     subset.insert(pitches[i]);
                 }
             }
-            
-            // Вызываем переданную функцию-коллбэк, отдавая ей собранное подмножество
+                        
             callback(subset); 
             
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));

@@ -10,14 +10,20 @@ AppController::AppController(PianoKeyboard* p){
 }
 
 void AppController::updateAll(){
-    ChordData chord = chordRecognizer.defineChord(currentState.getPitches());
     currentState.clearSelectedChords();
-    if (chord.rootNote != -1){
-        currentState.addChord(chord);
+    currentState.clearSelectedIntervals();
+    std::set<ChordData> chords = chordRecognizer.findAllChords(currentState.getPitches());
+    for (const ChordData& chord : chords){        
+        currentState.addChord(chord);        
+    }
+    std::set<IntervalData> intervals = intervalRecognizer.findAllIntervals(currentState.getPitches());
+    for (const IntervalData& interval : intervals){
+        currentState.addInterval(interval);
     }
     myPiano->clearHighlights();
     myPiano->highlightNotes(currentState.getPitches());
     myPiano->highlightChords(currentState.getChords());
+    myPiano->highlightIntervals(currentState.getIntervals());
 }
 
 void AppController::press (int clickedPitch){
@@ -32,6 +38,7 @@ void AppController::press (const ChordCommand& chord){
     }
     updateAll();
 }
+
 
 void AppController::release (int clickedPitch){
     currentState.removePitch(clickedPitch);

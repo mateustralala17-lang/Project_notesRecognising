@@ -9,11 +9,9 @@
 class IntervalRecognizer
 {
     private:
-        std::map<std::string, std::set<int>> chordTemplates;
+        std::map<int, std::string> intervalTemplates;
 
     public:
-        IntervalRecognizer();
-        //std::set<int> getPhysicalNotes(const ChordData& chord);
-        //IntervalData defineInterval(const std::set<int>& pitches);
-        //std::set<int> buildChord(const ChordCommand& cmdChord, const std::set<int>& selectedPitches);
+        IntervalRecognizer();        
+        std::set<IntervalData> findAllIntervals(const std::set<int>& pitches);
 };

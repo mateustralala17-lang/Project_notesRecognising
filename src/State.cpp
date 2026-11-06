@@ -10,21 +10,37 @@ void State::removePitch(int pitch){
 }
 
 void State::addChord(const ChordData& chord){
-    selectedChords.push_back(chord);
+    selectedChords.insert(chord);
 }
 
 void State::removeChord(const ChordData& chord){
-    selectedChords.erase(std::remove(selectedChords.begin(), selectedChords.end(), chord), selectedChords.end());
+    selectedChords.erase(chord);
+}
+
+void State::addInterval(const IntervalData& interval){
+    selectedIntervals.insert(interval);
+}
+
+void State::removeInterval(const IntervalData& interval){
+    selectedIntervals.erase(interval);
 }
 
 void State::clearSelectedChords(){
     selectedChords.clear();
 }
 
+void State::clearSelectedIntervals(){
+    selectedIntervals.clear();
+}
+
 const std::set<int>& State::getPitches() const {
     return selectedPitches;
 }
 
-const std::vector<ChordData>& State::getChords() const {
+const std::set<ChordData>& State::getChords() const {
     return selectedChords;
+}
+
+const std::set<IntervalData>& State::getIntervals() const {
+    return selectedIntervals;
 }
