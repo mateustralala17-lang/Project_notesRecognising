@@ -25,13 +25,21 @@ void PianoKeyboard::highlightChords(const std::set<ChordData>& chords){
         std::cout << "      (немає розпізнаних акордів)\n";
         return;
     }
+    std::set<ChordData> uniqueChordNames;
+    for (const auto& chord : chords) {
+        uniqueChordNames.insert(chord);
+    }
 
-    for (const ChordData& chord : chords) {
+    for (const auto& name : uniqueChordNames) {
+        std::cout << "-> " << name.chordType << name.rootNote <<"\n";
+    }
+
+    /*for (const ChordData& chord : chords) {
         std::cout << "      -> " << chord.chordType 
                 << " (Тоніка: " << chord.rootNote 
                 << ", Бас: " << chord.lowestPitch << ")\n";
     }
-    std::cout << "====================================\n";
+    std::cout << "====================================\n";*/
 }
 
 void PianoKeyboard::highlightIntervals(const std::set<IntervalData>& intervals){
@@ -40,13 +48,22 @@ void PianoKeyboard::highlightIntervals(const std::set<IntervalData>& intervals){
         std::cout << "      (немає розпізнаних інтервалів)\n";
         return;
     }
+        // Внутри твоего метода вывода на экран в PianoKeyboard
+    std::set<std::string> uniqueIntervalNames;
+    for (const auto& interval : intervals) {
+        uniqueIntervalNames.insert(interval.intervalType); 
+    }
 
-    for (const IntervalData& interval : intervals) {
+    for (const auto& name : uniqueIntervalNames) {
+        std::cout << "-> " << name << "\n";
+    }
+
+    /*for (const IntervalData& interval : intervals) {
         std::cout << "      -> " << interval.intervalType 
                 << " (Відстань: " << interval.distance 
                 << ", Початкова нота: " << interval.lowestPitch << ")\n";
     }
-    std::cout << "====================================\n";
+    std::cout << "====================================\n";*/
 }
 
 void PianoKeyboard::draw(){
