@@ -17,6 +17,7 @@ class ChordRecognizer
 
     public:
         ChordRecognizer();
+        const std::map<std::string, std::set<int>>& getTemplates() const { return chordTemplates; }
         std::set<int> getPhysicalNotes(const ChordData& chord);
         std::set<int> buildChord(const ChordCommand& cmdChord, const std::set<int>& selectedPitches);
         std::set<ChordData> findAllChords(const std::set<int>& pitches);

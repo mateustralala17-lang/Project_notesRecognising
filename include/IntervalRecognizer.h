@@ -1,17 +1,18 @@
 #pragma once
-#include <vector>
-#include <set>
-#include <map>
-#include <string>
 #include "DataTypes.h"
 #include "MusicUtils.h"
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
-class IntervalRecognizer
-{
-    private:
-        std::map<int, std::string> intervalTemplates;
+class IntervalRecognizer {
+private:
+  std::map<int, std::string> intervalTemplates;
 
-    public:
-        IntervalRecognizer();        
-        std::set<IntervalData> findAllIntervals(const std::set<int>& pitches);
+public:
+  IntervalRecognizer();
+  const std::map<int, std::string>& getTemplates() const { return intervalTemplates; }
+  std::set<IntervalData> findAllIntervals(const std::set<int> &pitches);
+  std::set<int> buildInterval(const IntervalCommand &interval, const std::set<int> &pitches);
 };

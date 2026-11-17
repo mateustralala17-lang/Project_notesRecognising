@@ -1,19 +1,14 @@
 #pragma once
-#include <vector>
-#include <set>
-#include <string>
-#include "DataTypes.h"
 #include "UIComponent.h"
 
 class PianoKeyboard : public UIComponent
 {
-    private:
-
     public:
+        static constexpr int MIN_PITCH = 21;
+        static constexpr int MAX_PITCH = 108;
+
         PianoKeyboard() {};
-        void draw() override;
-        void clearHighlights();
-        void highlightNotes(const std::set<int>& pitches);
-        void highlightChords(const std::set<ChordData>& chords);
-        void highlightIntervals(const std::set<IntervalData>& intervals);
+        std::string getKey() const override;
+        std::string serialize(const State& state) const override;
+        std::string getInitData() const override;
 };

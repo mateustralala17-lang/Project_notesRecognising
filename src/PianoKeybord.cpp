@@ -1,71 +1,34 @@
 #include "../include/PianoKeyboard.h"
-#include <iostream>
-using namespace std;
+#include "../include/State.h"
+#include <sstream>
 
-void PianoKeyboard::clearHighlights(){
-    cout << "\n--- [ НОВИЙ КАДР ОНОВЛЕННЯ ] ---\n" << endl;
+std::string PianoKeyboard::getKey() const
+{
+    return "keyboard";
 }
 
-void PianoKeyboard::highlightNotes(const std::set<int>& pitches){
-    cout << "[UI]: Горят клавіші (MIDI): ";
-    if (pitches.empty()) {
-        std::cout << "нічого не натиснуто\n";
-    return;
+std::string PianoKeyboard::serialize(const State& state) const
+{
+    std::ostringstream oss;
+    oss << "[";
+    bool first = true;
+    for (int pitch : state.getPitches())
+    {
+        if (!first)
+        {
+            oss << ",";
+        }
+        oss << pitch;
+        first = false;
     }
-
-    for (int pitch : pitches) {                
-        std::cout << pitch << " "; 
-    }
-    std::cout << "\n";
+    oss << "]";
+    return oss.str();
 }
 
-void PianoKeyboard::highlightChords(const std::set<ChordData>& chords){
-    std::cout << "[UI]: На екрані горять акорди:\n";
-    if (chords.empty()) {
-        std::cout << "      (немає розпізнаних акордів)\n";
-        return;
-    }
-    std::set<ChordData> uniqueChordNames;
-    for (const auto& chord : chords) {
-        uniqueChordNames.insert(chord);
-    }
-
-    for (const auto& name : uniqueChordNames) {
-        std::cout << "-> " << name.chordType << name.rootNote <<"\n";
-    }
-
-    /*for (const ChordData& chord : chords) {
-        std::cout << "      -> " << chord.chordType 
-                << " (Тоніка: " << chord.rootNote 
-                << ", Бас: " << chord.lowestPitch << ")\n";
-    }
-    std::cout << "====================================\n";*/
-}
-
-void PianoKeyboard::highlightIntervals(const std::set<IntervalData>& intervals){
-    std::cout << "[UI]: На екрані горять інтервали:\n";
-    if (intervals.empty()) {
-        std::cout << "      (немає розпізнаних інтервалів)\n";
-        return;
-    }
-        // Внутри твоего метода вывода на экран в PianoKeyboard
-    std::set<std::string> uniqueIntervalNames;
-    for (const auto& interval : intervals) {
-        uniqueIntervalNames.insert(interval.intervalType); 
-    }
-
-    for (const auto& name : uniqueIntervalNames) {
-        std::cout << "-> " << name << "\n";
-    }
-
-    /*for (const IntervalData& interval : intervals) {
-        std::cout << "      -> " << interval.intervalType 
-                << " (Відстань: " << interval.distance 
-                << ", Початкова нота: " << interval.lowestPitch << ")\n";
-    }
-    std::cout << "====================================\n";*/
-}
-
-void PianoKeyboard::draw(){
-    
+std::string PianoKeyboard::getInitData() const
+{
+    std::ostringstream oss;
+    oss << "{\"minPitch\":" << MIN_PITCH
+        << ",\"maxPitch\":" << MAX_PITCH << "}";
+    return oss.str();
 }
