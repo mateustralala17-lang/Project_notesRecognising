@@ -17,7 +17,7 @@ x86/
 *.sln
 *.vcxproj
 *.vcxproj.*
-.vscode/*
+.vscode/
 *.code-workspace
 Thumbs.db
 desktop.ini
@@ -25,3 +25,12 @@ desktop.ini
 venv/
 .venv/
 env/
+tests.exe
+GEMINI.md
+SPEC.md
+PROMPT_*.md
+.clangd
+.agent/
+docs/html/
+docs/latex/
+__pycache__/

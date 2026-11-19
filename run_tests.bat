@@ -1,0 +1,2 @@
+cl.exe /EHsc /nologo /Iinclude /Fetests.exe tests\test_main.cpp src\AppController.cpp src\State.cpp src\PianoKeyboard.cpp src\ChordMatrix.cpp src\IntervalMatrix.cpp src\ChordRecognizer.cpp src\IntervalRecognizer.cpp
+if %errorlevel% equ 0 tests.exe
