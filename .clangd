@@ -1,5 +1,0 @@
-CompileFlags:
-  Add:
-    - "-IC:/Users/KotliarMisha/Project_notesRecognising/include"
-    - "--target=x86_64-pc-windows-msvc"
-    - "-std=c++17"
