@@ -12,6 +12,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 std::string buildCombinedJson(
     const std::vector<std::unique_ptr<UIComponent>>& components,
@@ -50,6 +51,79 @@ std::string buildInitJson(
     }
     oss << "}";
     return oss.str();
+}
+
+void handleAction(
+    const httplib::Request& req,
+    httplib::Response& res,
+    AppController& controller,
+    std::mutex& appMutex,
+    const std::vector<std::unique_ptr<UIComponent>>& components,
+    bool isPress)
+{
+    std::lock_guard<std::mutex> lock(appMutex);
+    std::string type = req.get_param_value("type");
+
+    try
+    {
+        if (type == "note")
+        {
+            int pitch = std::stoi(req.get_param_value("pitch"));
+            if (isPress)
+            {
+                controller.press(pitch);
+            }
+            else
+            {
+                controller.release(pitch);
+            }
+        }
+        else if (type == "chord")
+        {
+            int root = std::stoi(req.get_param_value("root"));
+            int inversion = std::stoi(req.get_param_value("inversion"));
+            std::string chordType = req.get_param_value("chordType");
+            ChordCommand cmd{root, inversion, chordType};
+            if (isPress)
+            {
+                controller.press(cmd);
+            }
+            else
+            {
+                controller.release(cmd);
+            }
+        }
+        else if (type == "interval")
+        {
+            int distance = std::stoi(req.get_param_value("distance"));
+            std::string intervalType = req.get_param_value("intervalType");
+            IntervalCommand cmd{distance, intervalType};
+            if (isPress)
+            {
+                controller.press(cmd);
+            }
+            else
+            {
+                controller.release(cmd);
+            }
+        }
+        else
+        {
+            res.status = 400;
+            res.set_content("{\"error\":\"unknown type\"}", "application/json");
+            return;
+        }
+    }
+    catch (const std::exception&)
+    {
+        res.status = 400;
+        res.set_content("{\"error\":\"invalid numeric parameter\"}", "application/json");
+        return;
+    }
+
+    res.set_content(
+        buildCombinedJson(components, controller.getState()),
+        "application/json");
 }
 
 int main()
@@ -99,77 +173,13 @@ int main()
     // POST /press — press a note, chord, or interval
     svr.Post("/press", [&controller, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
     {
-        std::lock_guard<std::mutex> lock(appMutex);
-        std::string type = req.get_param_value("type");
-
-        if (type == "note")
-        {
-            int pitch = std::stoi(req.get_param_value("pitch"));
-            controller.press(pitch);
-        }
-        else if (type == "chord")
-        {
-            int root = std::stoi(req.get_param_value("root"));
-            int inversion = std::stoi(req.get_param_value("inversion"));
-            std::string chordType = req.get_param_value("chordType");
-            ChordCommand cmd{root, inversion, chordType};
-            controller.press(cmd);
-        }
-        else if (type == "interval")
-        {
-            int distance = std::stoi(req.get_param_value("distance"));
-            std::string intervalType = req.get_param_value("intervalType");
-            IntervalCommand cmd{distance, intervalType};
-            controller.press(cmd);
-        }
-        else
-        {
-            res.status = 400;
-            res.set_content("{\"error\":\"unknown type\"}", "application/json");
-            return;
-        }
-
-        res.set_content(
-            buildCombinedJson(components, controller.getState()),
-            "application/json");
+        handleAction(req, res, controller, appMutex, components, true);
     });
 
     // POST /release — release a note, chord, or interval
     svr.Post("/release", [&controller, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
     {
-        std::lock_guard<std::mutex> lock(appMutex);
-        std::string type = req.get_param_value("type");
-
-        if (type == "note")
-        {
-            int pitch = std::stoi(req.get_param_value("pitch"));
-            controller.release(pitch);
-        }
-        else if (type == "chord")
-        {
-            int root = std::stoi(req.get_param_value("root"));
-            int inversion = std::stoi(req.get_param_value("inversion"));
-            std::string chordType = req.get_param_value("chordType");
-            ChordCommand cmd{root, inversion, chordType};
-            controller.release(cmd);
-        }
-        else if (type == "interval")
-        {
-            int distance = std::stoi(req.get_param_value("distance"));
-            std::string intervalType = req.get_param_value("intervalType");
-            IntervalCommand cmd{distance, intervalType};
-            controller.release(cmd);
-        }
-        else
-        {
-            res.status = 400;
-            res.set_content("{\"error\":\"unknown type\"}", "application/json");
-            return;
-        }
-
-        res.set_content(
-            buildCombinedJson(components, controller.getState()),
-            "application/json");
+        handleAction(req, res, controller, appMutex, components, false);
     });
 
     std::cout << "Starting server on http://localhost:8080" << std::endl;

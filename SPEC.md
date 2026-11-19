@@ -161,4 +161,3 @@ public:
 ## 4. Coding Standards & Build Compatibility
 * Modern C++17 without third-party dependencies outside standard library and `include/httplib.h`.
 * Follow the existing codebase formatting style and verify compilation by running the existing build.bat without modifying it.
-

@@ -14,6 +14,10 @@ std::string PianoKeyboard::serialize(const State& state) const
     bool first = true;
     for (int pitch : state.getPitches())
     {
+        if (pitch < MIN_PITCH || pitch > MAX_PITCH)
+        {
+            continue;
+        }
         if (!first)
         {
             oss << ",";

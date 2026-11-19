@@ -1,1 +1,483 @@
-<h1>Server is running</h1>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Piano & Harmony Recognizer</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #ffffff;
+      color: #222222;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-wrapper {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    #clear-all-btn {
+      background-color: #e0e0e0;
+      color: #222222;
+      border: 1px solid #cccccc;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+    }
+
+    #clear-all-btn:hover {
+      background-color: #d0d0d0;
+    }
+
+    #clear-all-btn:active {
+      background-color: #c0c0c0;
+    }
+
+    /* Main Workspace */
+    .main-workspace {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+    }
+
+    /* Piano Container */
+    #piano-container {
+      position: relative;
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #d0d0d0;
+      padding: 12px;
+      background: #fafafa;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .piano-track {
+      display: flex;
+      position: relative;
+      width: 100%;
+      height: 180px;
+      user-select: none;
+    }
+
+    .white-key {
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
+      background: #ffffff;
+      border: 1px solid #bdbdbd;
+      border-radius: 0 0 5px 5px;
+      position: relative;
+      z-index: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+      font-size: 11px;
+      color: #666666;
+      font-weight: 500;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+    }
+
+    .black-key {
+      position: absolute;
+      top: 0;
+      height: 60%;
+      background: #1e1e1e;
+      border: 1px solid #111111;
+      border-radius: 0 0 4px 4px;
+      z-index: 2;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+      transition: background-color 0.12s ease, border-color 0.12s ease;
+    }
+
+    /* Active Highlight States for Keys */
+    .white-key.active {
+      background: #e53935;
+      border-color: #c62828;
+      color: #ffffff;
+    }
+
+    .black-key.active {
+      background: #ff5252;
+      border: 1px solid #ffffff;
+      box-shadow: 0 3px 6px rgba(229, 57, 53, 0.5);
+    }
+
+    /* Bottom Two-Column Split Row */
+    .bottom-split-row {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 24px;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    /* Section / Panel Headers */
+    .panel-header {
+      font-size: 15px;
+      font-weight: 600;
+      color: #444444;
+      margin-bottom: 12px;
+    }
+
+    /* Left Panel: Intervals */
+    #intervals-container {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .intervals-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      flex-grow: 1;
+      grid-auto-rows: 1fr;
+    }
+
+    /* Right Panel: Chords Section */
+    #chords-section {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #chord-type-controls:empty {
+      display: none;
+    }
+
+    #chord-type-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #chord-type-controls button,
+    #chord-type-controls .chord-type-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #cccccc;
+      background: #ffffff;
+      color: #444444;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      user-select: none;
+    }
+
+    #chord-type-controls button:hover,
+    #chord-type-controls .chord-type-btn:hover {
+      background: #f0f0f0;
+      border-color: #bbbbbb;
+    }
+
+    #chord-type-controls button.active,
+    #chord-type-controls .chord-type-btn.active {
+      background: #d32f2f;
+      color: #ffffff;
+      border-color: #b71c1c;
+    }
+
+    #chords-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .chord-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 160px;
+    }
+
+    .chord-group-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(56px, 1fr));
+      gap: 10px;
+    }
+
+    /* Common Matrix Button Styles */
+    .matrix-btn {
+      min-height: 44px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 2px solid #d32f2f;
+      color: #222222;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+      user-select: none;
+    }
+
+    .matrix-btn:hover {
+      background-color: #ffebee;
+    }
+
+    .matrix-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Active Highlight State for Matrix Buttons */
+    .matrix-btn.active {
+      background-color: #d32f2f;
+      color: #ffffff;
+      border-color: #b71c1c;
+      box-shadow: 0 2px 6px rgba(211, 47, 47, 0.35);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-wrapper">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <button id="clear-all-btn" type="button">Clear All</button>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Piano Container -->
+      <section id="piano-container"></section>
+
+      <!-- Bottom Two-Column Split Row -->
+      <section class="bottom-split-row">
+        <!-- Left Panel: Intervals -->
+        <div id="intervals-container"></div>
+
+        <!-- Right Panel: Chords Section -->
+        <div id="chords-section">
+          <div id="chord-type-controls"></div>
+          <div id="chords-container"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    // Global Element Lookup Maps (DOM Cache)
+    const keyElements = {};        // keyElements[pitch] = el
+    const intervalElements = {};   // intervalElements[distance] = el
+    const chordElements = {};      // chordElements[`${root}_${chordType}`] = el
+
+    // Piano Keyboard Builder
+    function renderKeyboard(keyboardData) {
+      const container = document.getElementById("piano-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const track = document.createElement("div");
+      track.className = "piano-track";
+
+      const isBlack = (p) => [1, 3, 6, 8, 10].includes(p % 12);
+      const minPitch = keyboardData.minPitch;
+      const maxPitch = keyboardData.maxPitch;
+
+      const whiteKeys = [];
+      const blackKeys = [];
+
+      // Pass 1: Render White Keys
+      for (let pitch = minPitch; pitch <= maxPitch; pitch++) {
+        if (!isBlack(pitch)) {
+          const keyEl = document.createElement("div");
+          keyEl.className = "white-key";
+
+          // C notes octave label
+          if (pitch % 12 === 0) {
+            const octave = Math.floor(pitch / 12) - 1;
+            keyEl.textContent = `C${octave}`;
+          }
+
+          keyEl.dataset.type = "note";
+          keyEl.dataset.pitch = String(pitch);
+
+          track.appendChild(keyEl);
+          keyElements[pitch] = keyEl;
+          whiteKeys.push({ pitch, el: keyEl, index: whiteKeys.length });
+        } else {
+          // Preceding white key is the one rendered just before this black key
+          blackKeys.push({ pitch, precedingWhiteIndex: whiteKeys.length - 1 });
+        }
+      }
+
+      // Pass 2: Render Black Keys positioned over preceding white keys
+      const whiteCount = whiteKeys.length;
+      if (whiteCount > 0) {
+        const whiteWidth = 100 / whiteCount;
+        const blackWidth = whiteWidth * 0.6;
+
+        for (const item of blackKeys) {
+          const keyEl = document.createElement("div");
+          keyEl.className = "black-key";
+
+          const left = (item.precedingWhiteIndex + 1) * whiteWidth - (blackWidth / 2);
+          keyEl.style.left = `${left}%`;
+          keyEl.style.width = `${blackWidth}%`;
+
+          keyEl.dataset.type = "note";
+          keyEl.dataset.pitch = String(item.pitch);
+
+          track.appendChild(keyEl);
+          keyElements[item.pitch] = keyEl;
+        }
+      }
+
+      container.appendChild(track);
+    }
+
+    // Intervals Matrix Builder
+    function renderIntervals(intervalsData) {
+      const container = document.getElementById("intervals-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const header = document.createElement("h3");
+      header.className = "panel-header";
+      header.textContent = "Intervals";
+      container.appendChild(header);
+
+      const grid = document.createElement("div");
+      grid.className = "intervals-grid";
+
+      const INTERVAL_LABELS = {
+        0: "P1", 1: "m2", 2: "M2", 3: "m3", 4: "M3", 5: "P4",
+        6: "TT", 7: "P5", 8: "m6", 9: "M6", 10: "m7", 11: "M7"
+      };
+
+      for (const item of intervalsData.availableIntervals) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "matrix-btn";
+        btn.textContent = INTERVAL_LABELS[item.distance] ?? item.intervalType;
+
+        btn.dataset.type = "interval";
+        btn.dataset.distance = String(item.distance);
+        btn.dataset.intervalType = item.intervalType;
+
+        grid.appendChild(btn);
+        intervalElements[item.distance] = btn;
+      }
+
+      container.appendChild(grid);
+    }
+
+    // Chords Matrix Builder
+    function renderChords(chordsData) {
+      const container = document.getElementById("chords-container");
+      if (!container) return;
+      container.innerHTML = "";
+
+      const ROOT_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+      function formatChordLabel(root, chordType) {
+        const rootName = ROOT_NAMES[root];
+        if (chordType === "major") return rootName;
+        if (chordType === "minor") return `${rootName}m`;
+        if (chordType === "diminished") return `${rootName}dim`;
+        if (chordType === "augmented") return `${rootName}aug`;
+        return `${rootName} (${chordType})`;
+      }
+
+      for (const chordType of chordsData.types) {
+        const group = document.createElement("div");
+        group.className = "chord-group";
+
+        const title = chordType.charAt(0).toUpperCase() + chordType.slice(1);
+        const header = document.createElement("h3");
+        header.className = "panel-header";
+        header.textContent = title;
+        group.appendChild(header);
+
+        const grid = document.createElement("div");
+        grid.className = "chord-group-grid";
+
+        for (let root = 0; root < 12; root++) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "matrix-btn";
+          btn.textContent = formatChordLabel(root, chordType);
+
+          btn.dataset.type = "chord";
+          btn.dataset.root = String(root);
+          btn.dataset.inversion = "0";
+          btn.dataset.chordType = chordType;
+
+          grid.appendChild(btn);
+          chordElements[`${root}_${chordType}`] = btn;
+        }
+
+        group.appendChild(grid);
+        container.appendChild(group);
+      }
+    }
+
+    // Lifecycle: Fetch /init and Render UI
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        const res = await fetch("/init");
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+
+        if (data.keyboard) {
+          renderKeyboard(data.keyboard);
+        }
+        if (data.intervals && Array.isArray(data.intervals.availableIntervals)) {
+          renderIntervals(data.intervals);
+        }
+        if (data.chords && Array.isArray(data.chords.types)) {
+          renderChords(data.chords);
+        }
+      } catch (err) {
+        console.error("Failed to load /init:", err);
+      }
+    });
+  </script>
+</body>
+
+</html>
