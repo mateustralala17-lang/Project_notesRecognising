@@ -34,3 +34,7 @@ PROMPT_*.md
 docs/html/
 docs/latex/
 __pycache__/
+requirements.txt
+app.py
+basicPitch.py
+test_audio.mp3
