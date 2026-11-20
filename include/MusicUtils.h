@@ -3,9 +3,14 @@
 #include <set>
 #include <vector>
 
-
+/// @brief Mathematical and combinatoric utilities for musical pitch processing.
 namespace MusicUtils {
 
+/// @brief Iterates over all k-element subsets of a set of pitches and invokes a callback.
+/// @tparam Func Invocable callback type taking `const std::set<int>&`.
+/// @param allPitches Source set of pitches.
+/// @param k Subset size.
+/// @param callback Function called with each k-subset.
 template <typename Func>
 void forEachSubset(const std::set<int> &allPitches, int k, Func callback) {
   std::vector<int> pitches(allPitches.begin(), allPitches.end());

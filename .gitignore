@@ -38,3 +38,4 @@ requirements.txt
 app.py
 basicPitch.py
 test_audio.mp3
+bench.exe
