@@ -113,16 +113,14 @@ std::set<int> ChordRecognizer::buildChord(const ChordCommand& cmdChord, const st
 std::set<ChordData> ChordRecognizer::findAllChords(const std::set<int>& pitches) {
     std::set<ChordData> results;
 
-    // 1. Ищем все трезвучия (комбинации по 3 ноты)
     MusicUtils::forEachSubset(pitches, 3, [&](const std::set<int>& triad) {
         ChordData data = defineChord(triad);
-        // Если вернулась не "пустышка", значит аккорд распознан
         if (data.rootNote != -1) {
             results.insert(data);
         }
     });
 
-    // 2. Ищем все септаккорды (комбинации по 4 ноты)
+
     MusicUtils::forEachSubset(pitches, 4, [&](const std::set<int>& tetrad) {
         ChordData data = defineChord(tetrad);
         if (data.rootNote != -1) {

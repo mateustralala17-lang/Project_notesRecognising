@@ -2,20 +2,43 @@
 setlocal
 
 where cl.exe >nul 2>&1
-if %errorlevel% neq 0 (
-    set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-    if exist "%VSWHERE%" (
-        for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
-            set "VS_PATH=%%i"
+if %errorlevel% equ 0 goto :build
+
+set "VCVARS="
+
+for %%D in (C D) do (
+    for %%V in (18 2026 2022 2019) do (
+        for %%E in (Community Professional Enterprise BuildTools Preview) do (
+            if not defined VCVARS (
+                if exist "%%D:\Program Files\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat" (
+                    set "VCVARS=%%D:\Program Files\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat"
+                )
+            )
+            if not defined VCVARS (
+                if exist "%%D:\Program Files (x86)\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat" (
+                    set "VCVARS=%%D:\Program Files (x86)\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat"
+                )
+            )
         )
-    )
-    if defined VS_PATH (
-        call "%VS_PATH%\VC\Auxiliary\Build\vcvars64.bat" >nul
-    ) else (
-        echo [ERROR] MSVC compiler not found.
-        exit /b 1
     )
 )
 
-cl.exe /O2 /EHsc /nologo /Iinclude /Febench.exe benchmarks\bench_main.cpp src\AppController.cpp src\State.cpp src\PianoKeyboard.cpp src\ChordMatrix.cpp src\IntervalMatrix.cpp src\ChordRecognizer.cpp src\IntervalRecognizer.cpp
-if %errorlevel% equ 0 bench.exe
+if not defined VCVARS (
+    set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+    if exist "%VSWHERE%" (
+        for /f "tokens=*" %%i in ('""%VSWHERE%" -latest -products * -property installationPath"') do (
+            if exist "%%i\VC\Auxiliary\Build\vcvars64.bat" set "VCVARS=%%i\VC\Auxiliary\Build\vcvars64.bat"
+        )
+    )
+)
+
+if defined VCVARS (
+    call "%VCVARS%" >nul
+) else (
+    echo [ERROR] MSVC compiler not found. Install "Desktop development with C++" in VS Installer.
+    exit /b 1
+)
+
+:build
+cl.exe /Zi /EHsc /nologo /Iinclude /Feapp.exe src\*.cpp
+if %errorlevel% equ 0 app.exe
