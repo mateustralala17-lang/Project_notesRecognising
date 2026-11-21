@@ -48,6 +48,7 @@ Web-інтерфейс написано на JavaScript, який через к�
 * **Структур:** 4 (`ChordData`, `ChordCommand`, `IntervalData`, `IntervalCommand`)
 * **Просторів імен:** 1 (`MusicUtils` у `MusicUtils.h`)
 * **Вільних функцій:** 3 (`buildCombinedJson`, `buildInitJson`, `handleAction` у `main.cpp`)
+* **Інтеграційний тест на Python:** автоматична перевірка взаємодії інтерфейсу з ядром 
 * **Елементи функціонального програмування:**
   * **Шаблонна функція вищого порядку:** `MusicUtils::forEachSubset` (`MusicUtils.h`), яка приймає лямбда-вирази як callback для обробки комбінацій нот.
   * **Лямбда-обробники із замиканням:** реєстрація маршрутів `GET` та `POST` у `main.cpp` із захопленням контексту (`controller`, `appMutex`, `components`) за посиланням.
