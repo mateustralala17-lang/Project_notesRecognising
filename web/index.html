@@ -34,11 +34,14 @@
     /* Top Bar */
     .top-bar {
       display: flex;
-      justify-content: flex-start;
+      justify-content: space-between;
       align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
-    #clear-all-btn {
+    #clear-all-btn,
+    #load-track-btn {
       background-color: #e0e0e0;
       color: #222222;
       border: 1px solid #cccccc;
@@ -47,16 +50,117 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.15s ease, border-color 0.15s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
       user-select: none;
     }
 
-    #clear-all-btn:hover {
+    #clear-all-btn:hover,
+    #load-track-btn:hover:not(:disabled) {
       background-color: #d0d0d0;
     }
 
-    #clear-all-btn:active {
+    #clear-all-btn:active,
+    #load-track-btn:active:not(:disabled) {
       background-color: #c0c0c0;
+    }
+
+    #load-track-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Sound Mode Selector */
+    .sound-mode-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #f5f5f5;
+      border: 1px solid #dddddd;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .sound-mode-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sound-mode-option input[type="radio"] {
+      accent-color: #d32f2f;
+      cursor: pointer;
+    }
+
+    /* Playback Control Bar */
+    #playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 10px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    #play-pause-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background-color: #d32f2f;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color 0.15s ease, transform 0.08s ease, opacity 0.15s ease;
+      user-select: none;
+    }
+
+    #play-pause-btn:hover:not(:disabled) {
+      background-color: #b71c1c;
+    }
+
+    #play-pause-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    #play-pause-btn:disabled {
+      background-color: #bdbdbd;
+      color: #f5f5f5;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .time-label {
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: #444444;
+      min-width: 38px;
+      text-align: center;
+      user-select: none;
+    }
+
+    #seek-slider {
+      flex: 1;
+      height: 6px;
+      accent-color: #d32f2f;
+      cursor: pointer;
+    }
+
+    #seek-slider:disabled {
+      accent-color: #bdbdbd;
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     /* Main Workspace */
@@ -278,12 +382,31 @@
     <!-- Top Bar -->
     <header class="top-bar">
       <button id="clear-all-btn" type="button">Clear All</button>
+      <div class="sound-mode-group" role="radiogroup" aria-label="Sound Mode">
+        <label class="sound-mode-option">
+          <input type="radio" name="sound-mode" id="mode-piano" value="piano" checked>
+          <span>Piano (Percussive)</span>
+        </label>
+        <label class="sound-mode-option">
+          <input type="radio" name="sound-mode" id="mode-continuous" value="continuous">
+          <span>Continuous (Organ)</span>
+        </label>
+      </div>
+      <button id="load-track-btn" type="button">Load Track</button>
     </header>
 
     <!-- Main Workspace -->
     <main class="main-workspace">
       <!-- Piano Container -->
       <section id="piano-container"></section>
+
+      <!-- Playback Controls -->
+      <section id="playback-controls" aria-label="Playback Controls">
+        <button id="play-pause-btn" type="button" disabled aria-label="Play">&#9654;</button>
+        <span id="current-time" class="time-label">0:00</span>
+        <input type="range" id="seek-slider" min="0" max="100" step="0.01" value="0" disabled>
+        <span id="total-duration" class="time-label">0:00</span>
+      </section>
 
       <!-- Bottom Two-Column Split Row -->
       <section class="bottom-split-row">
@@ -305,12 +428,168 @@
     const chordElements = {};      // chordElements[`${root}_${chordType}`] = el
 
     // Current state cache
-    let currentState = { keyboard: [], chords: [], intervals: [] };
+    let currentState = {
+      keyboard: [],
+      chords: [],
+      intervals: [],
+      player: { isPlaying: false, currentTime: 0, totalDuration: 0 }
+    };
+
+    // Player & Audio Engine State
+    let isDraggingSeek = false;
+    let audioCtx = null;
+    const activeVoices = new Map(); // pitch -> { osc1, osc2, gain }
+    let previousPitches = new Set();
+    let wasPlaying = false;
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioCtx = new AudioCtx();
+        }
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+
+    function midiToFreq(pitch) {
+      return 440 * Math.pow(2, (pitch - 69) / 12);
+    }
+
+    function getSoundMode() {
+      const checked = document.querySelector('input[name="sound-mode"]:checked');
+      return checked ? checked.value : "piano";
+    }
+
+    function triggerPianoVoice(pitch) {
+      ensureAudioContext();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const freq = midiToFreq(pitch);
+
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      osc1.type = "triangle";
+      osc1.frequency.setValueAtTime(freq, now);
+
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(freq * 2, now);
+
+      const osc2Gain = audioCtx.createGain();
+      osc2Gain.gain.setValueAtTime(0.25, now);
+
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(Math.min(8000, freq * 6), now);
+      filter.frequency.exponentialRampToValueAtTime(Math.max(400, freq * 1.5), now + 0.8);
+
+      // Higher pitches decay faster, lower pitches sustain slightly longer
+      const normalized = Math.max(0, Math.min(1, (pitch - 21) / 87));
+      const decayTime = 2.4 - normalized * 1.2;
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
+
+      osc1.connect(filter);
+      osc2.connect(osc2Gain);
+      osc2Gain.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + decayTime + 0.05);
+      osc2.stop(now + decayTime + 0.05);
+
+      osc1.onended = () => {
+        osc1.disconnect();
+        osc2.disconnect();
+        osc2Gain.disconnect();
+        filter.disconnect();
+        gain.disconnect();
+      };
+    }
+
+    function startContinuousVoice(pitch) {
+      if (activeVoices.has(pitch)) return;
+      ensureAudioContext();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const freq = midiToFreq(pitch);
+
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const osc2Gain = audioCtx.createGain();
+      const gain = audioCtx.createGain();
+
+      osc1.type = "triangle";
+      osc1.frequency.setValueAtTime(freq, now);
+
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(freq, now);
+      osc2Gain.gain.setValueAtTime(0.5, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.14, now + 0.015);
+
+      osc1.connect(gain);
+      osc2.connect(osc2Gain);
+      osc2Gain.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+
+      activeVoices.set(pitch, { osc1, osc2, osc2Gain, gain });
+    }
+
+    function stopContinuousVoice(pitch) {
+      const voice = activeVoices.get(pitch);
+      if (!voice || !audioCtx) return;
+
+      activeVoices.delete(pitch);
+      const now = audioCtx.currentTime;
+      const { osc1, osc2, osc2Gain, gain } = voice;
+
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+      gain.gain.linearRampToValueAtTime(0.0001, now + 0.03);
+
+      osc1.stop(now + 0.04);
+      osc2.stop(now + 0.04);
+      osc1.onended = () => {
+        osc1.disconnect();
+        osc2.disconnect();
+        osc2Gain.disconnect();
+        gain.disconnect();
+      };
+    }
+
+    function stopAllVoices() {
+      for (const pitch of [...activeVoices.keys()]) {
+        stopContinuousVoice(pitch);
+      }
+    }
+
+    function formatTime(sec) {
+      if (!Number.isFinite(sec) || sec < 0) return "0:00";
+      const totalSeconds = Math.floor(sec);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    }
 
     // Sequential request queue to prevent race conditions
     let requestQueue = Promise.resolve();
 
-    function sendRequest(endpoint, params) {
+    function sendRequest(endpoint, params, isManualAction = false) {
       requestQueue = requestQueue.then(async () => {
         try {
           const query = params ? `?${params.toString()}` : "";
@@ -319,17 +598,18 @@
             throw new Error(`HTTP ${res.status} on ${endpoint}`);
           }
           const state = await res.json();
-          renderState(state);
+          renderState(state, isManualAction);
           return state;
         } catch (err) {
           console.error(`Request failed (${endpoint}):`, err);
+          throw err;
         }
       });
       return requestQueue;
     }
 
     // State Rendering Engine
-    function renderState(state) {
+    function renderState(state, isManualAction = false) {
       if (!state) return;
       currentState = state;
 
@@ -364,6 +644,68 @@
           intervalElements[interval.distance]?.classList.add("active");
         }
       }
+
+      // 5. Update Player Controls
+      const player = state.player || { isPlaying: false, currentTime: 0, totalDuration: 0 };
+      const playPauseBtn = document.getElementById("play-pause-btn");
+      const seekSlider = document.getElementById("seek-slider");
+      const currentTimeEl = document.getElementById("current-time");
+      const totalDurationEl = document.getElementById("total-duration");
+
+      const hasTrack = player.totalDuration > 0;
+      const isPlaying = Boolean(player.isPlaying);
+
+      if (playPauseBtn) {
+        playPauseBtn.disabled = !hasTrack;
+        playPauseBtn.innerHTML = (hasTrack && isPlaying) ? "&#9208;" : "&#9654;";
+        playPauseBtn.setAttribute("aria-label", (hasTrack && isPlaying) ? "Pause" : "Play");
+      }
+
+      if (seekSlider) {
+        seekSlider.disabled = !hasTrack;
+        if (!isDraggingSeek) {
+          seekSlider.max = hasTrack ? String(player.totalDuration) : "100";
+          seekSlider.value = hasTrack ? String(player.currentTime) : "0";
+          if (currentTimeEl) {
+            currentTimeEl.textContent = formatTime(hasTrack ? player.currentTime : 0);
+          }
+          if (totalDurationEl) {
+            totalDurationEl.textContent = formatTime(hasTrack ? player.totalDuration : 0);
+          }
+        }
+      }
+
+      // 6. Edge-Triggered Audio Sync
+      const currentPitches = new Set(Array.isArray(state.keyboard) ? state.keyboard : []);
+
+      // Muting on actual pause transition only (not on idle SSE ticks while paused)
+      if (wasPlaying && !isPlaying) {
+        stopAllVoices();
+        previousPitches.clear();
+      }
+      wasPlaying = isPlaying;
+
+      if (isPlaying || isManualAction) {
+        const mode = getSoundMode();
+        const added = [...currentPitches].filter((p) => !previousPitches.has(p));
+        const removed = [...previousPitches].filter((p) => !currentPitches.has(p));
+
+        for (const pitch of added) {
+          if (mode === "piano") {
+            triggerPianoVoice(pitch);
+          } else {
+            startContinuousVoice(pitch);
+          }
+        }
+
+        for (const pitch of removed) {
+          if (mode === "continuous") {
+            stopContinuousVoice(pitch);
+          }
+        }
+
+        previousPitches = currentPitches;
+      }
     }
 
     // Event Delegation Handler
@@ -371,11 +713,12 @@
       const target = event.target.closest("[data-type]");
       if (!target) return;
 
+      ensureAudioContext();
       const isActive = target.classList.contains("active");
       const endpoint = isActive ? "/release" : "/press";
       const params = new URLSearchParams(target.dataset);
 
-      sendRequest(endpoint, params);
+      sendRequest(endpoint, params, true).catch(() => {});
     }
 
     // Clear All Implementation
@@ -384,6 +727,7 @@
       if (!clearBtn) return;
 
       clearBtn.addEventListener("click", () => {
+        ensureAudioContext();
         requestQueue = requestQueue.then(async () => {
           const activePitches = [...(currentState.keyboard || [])];
           if (activePitches.length === 0) return;
@@ -400,9 +744,81 @@
               console.error(`Failed to release pitch ${pitch}:`, err);
             }
           }
-          renderState(latestState);
+          renderState(latestState, true);
         });
       });
+    }
+
+    // Playback, Seek, Load Track & Sound Mode Controls
+    function setupPlayerControls() {
+      const playPauseBtn = document.getElementById("play-pause-btn");
+      const seekSlider = document.getElementById("seek-slider");
+      const currentTimeEl = document.getElementById("current-time");
+      const loadBtn = document.getElementById("load-track-btn");
+      const modeRadios = document.querySelectorAll('input[name="sound-mode"]');
+
+      if (playPauseBtn) {
+        playPauseBtn.addEventListener("click", () => {
+          ensureAudioContext();
+          if (currentState.player && currentState.player.isPlaying) {
+            stopAllVoices();
+            previousPitches.clear();
+            sendRequest("/pause", null, false).catch(() => {});
+          } else {
+            sendRequest("/play", null, false).catch(() => {});
+          }
+        });
+      }
+
+      if (seekSlider) {
+        seekSlider.addEventListener("input", () => {
+          isDraggingSeek = true;
+          if (currentTimeEl) {
+            currentTimeEl.textContent = formatTime(parseFloat(seekSlider.value));
+          }
+        });
+
+        seekSlider.addEventListener("change", () => {
+          ensureAudioContext();
+          const targetTime = parseFloat(seekSlider.value);
+          stopAllVoices();
+          previousPitches.clear();
+          sendRequest("/seek", new URLSearchParams({ time: String(targetTime) }), false)
+            .catch(() => {})
+            .finally(() => {
+              isDraggingSeek = false;
+            });
+        });
+      }
+
+      if (loadBtn) {
+        loadBtn.addEventListener("click", async () => {
+          ensureAudioContext();
+          const filePath = window.prompt("Enter audio file path (server-relative):", "test.mp3");
+          if (filePath === null || filePath.trim() === "") return;
+
+          loadBtn.disabled = true;
+          loadBtn.textContent = "Loading...";
+          try {
+            stopAllVoices();
+            previousPitches.clear();
+            await sendRequest("/load", new URLSearchParams({ file: filePath.trim() }), false);
+          } catch (err) {
+            console.error("Failed to load track:", err);
+          } finally {
+            loadBtn.disabled = false;
+            loadBtn.textContent = "Load Track";
+          }
+        });
+      }
+
+      for (const radio of modeRadios) {
+        radio.addEventListener("change", () => {
+          ensureAudioContext();
+          stopAllVoices();
+          previousPitches.clear();
+        });
+      }
     }
 
     // Piano Keyboard Builder
@@ -576,17 +992,33 @@
         }
 
         // Attach event delegation listeners
+        document.addEventListener("pointerdown", ensureAudioContext, { once: true });
         document.getElementById("piano-container")?.addEventListener("click", handleContainerClick);
         document.getElementById("intervals-container")?.addEventListener("click", handleContainerClick);
         document.getElementById("chords-container")?.addEventListener("click", handleContainerClick);
         setupClearAll();
+        setupPlayerControls();
 
         // Initial state synchronization
         const stateRes = await fetch("/state");
         if (stateRes.ok) {
           const initialState = await stateRes.json();
-          renderState(initialState);
+          renderState(initialState, false);
         }
+
+        // Connect real-time SSE stream
+        const eventSource = new EventSource("/events");
+        eventSource.onmessage = (event) => {
+          try {
+            const state = JSON.parse(event.data);
+            renderState(state, false);
+          } catch (err) {
+            console.error("Failed to parse SSE payload:", err);
+          }
+        };
+        eventSource.onerror = (err) => {
+          console.error("SSE connection error:", err);
+        };
       } catch (err) {
         console.error("Initialization error:", err);
       }

@@ -47,4 +47,7 @@ class AppController
         /// @brief Releases notes belonging to active intervals matching the command.
         /// @param interval Parameters identifying the interval to release.
         void release (const IntervalCommand& interval);
+
+        /// @brief Releases all currently active pitches, chords, and intervals.
+        void releaseAll();
 };

@@ -25,11 +25,23 @@ void State::removeInterval(const IntervalData& interval){
     selectedIntervals.erase(interval);
 }
 
+void State::clearSelectedPitches()
+{
+    selectedPitches.clear();
+}
+
 void State::clearSelectedChords(){
     selectedChords.clear();
 }
 
 void State::clearSelectedIntervals(){
+    selectedIntervals.clear();
+}
+
+void State::releaseAll()
+{
+    selectedPitches.clear();
+    selectedChords.clear();
     selectedIntervals.clear();
 }
 

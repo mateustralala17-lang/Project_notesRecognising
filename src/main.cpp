@@ -1,22 +1,27 @@
 #include "../include/httplib.h"
 #include "../include/AppController.h"
+#include "../include/AudioPlayer.h"
 #include "../include/UIComponent.h"
 #include "../include/PianoKeyboard.h"
 #include "../include/ChordMatrix.h"
 #include "../include/IntervalMatrix.h"
+#include "../include/AudioTranscriber.h"
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <sstream>
-#include <string>
-#include <vector>
 #include <stdexcept>
+#include <string>
+#include <thread>
+#include <vector>
 
 std::string buildCombinedJson(
     const std::vector<std::unique_ptr<UIComponent>>& components,
-    const State& state)
+    const State& state,
+    const PlayerStatus& playerStatus)
 {
     std::ostringstream oss;
     oss << "{";
@@ -30,6 +35,17 @@ std::string buildCombinedJson(
         oss << "\"" << comp->getKey() << "\":" << comp->serialize(state);
         first = false;
     }
+
+    if (!first)
+    {
+        oss << ",";
+    }
+    oss << "\"player\":{"
+        << "\"isPlaying\":" << (playerStatus.isPlaying ? "true" : "false") << ","
+        << "\"currentTime\":" << playerStatus.currentTime << ","
+        << "\"totalDuration\":" << playerStatus.totalDuration
+        << "}";
+
     oss << "}";
     return oss.str();
 }
@@ -57,6 +73,7 @@ void handleAction(
     const httplib::Request& req,
     httplib::Response& res,
     AppController& controller,
+    AudioPlayer& player,
     std::mutex& appMutex,
     const std::vector<std::unique_ptr<UIComponent>>& components,
     bool isPress)
@@ -122,14 +139,23 @@ void handleAction(
     }
 
     res.set_content(
-        buildCombinedJson(components, controller.getState()),
+        buildCombinedJson(components, controller.getState(), player.getStatus()),
         "application/json");
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     AppController controller;
     std::mutex appMutex;
+    AudioPlayer player(controller, appMutex);
+    AudioTranscriber transcriber(".venv\\Scripts\\python.exe scripts\\basicPitch.py");
+
+    if (argc > 1)
+    {
+        std::string initialFilePath = argv[1];
+        std::vector<NoteEvent> notes = transcriber.transcribe(initialFilePath);
+        player.load(notes);
+    }
 
     std::vector<std::unique_ptr<UIComponent>> components;
     components.push_back(std::make_unique<PianoKeyboard>());
@@ -162,24 +188,129 @@ int main()
     });
 
     // GET /state — current combined state
-    svr.Get("/state", [&controller, &appMutex, &components](const httplib::Request&, httplib::Response& res)
+    svr.Get("/state", [&controller, &player, &appMutex, &components](const httplib::Request&, httplib::Response& res)
     {
         std::lock_guard<std::mutex> lock(appMutex);
         res.set_content(
-            buildCombinedJson(components, controller.getState()),
+            buildCombinedJson(components, controller.getState(), player.getStatus()),
             "application/json");
     });
 
     // POST /press — press a note, chord, or interval
-    svr.Post("/press", [&controller, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
+    svr.Post("/press", [&controller, &player, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
     {
-        handleAction(req, res, controller, appMutex, components, true);
+        handleAction(req, res, controller, player, appMutex, components, true);
     });
 
     // POST /release — release a note, chord, or interval
-    svr.Post("/release", [&controller, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
+    svr.Post("/release", [&controller, &player, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
     {
-        handleAction(req, res, controller, appMutex, components, false);
+        handleAction(req, res, controller, player, appMutex, components, false);
+    });
+
+    // POST /play — start or resume playback
+    svr.Post("/play", [&controller, &player, &appMutex, &components](const httplib::Request&, httplib::Response& res)
+    {
+        player.play();
+        std::lock_guard<std::mutex> lock(appMutex);
+        res.set_content(
+            buildCombinedJson(components, controller.getState(), player.getStatus()),
+            "application/json");
+    });
+
+    // POST /pause — pause playback while keeping active notes highlighted
+    svr.Post("/pause", [&controller, &player, &appMutex, &components](const httplib::Request&, httplib::Response& res)
+    {
+        player.pause();
+        std::lock_guard<std::mutex> lock(appMutex);
+        res.set_content(
+            buildCombinedJson(components, controller.getState(), player.getStatus()),
+            "application/json");
+    });
+
+    // POST /seek — seek playback to a target timestamp in seconds
+    svr.Post("/seek", [&controller, &player, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
+    {
+        double targetTime = 0.0;
+        try
+        {
+            if (!req.has_param("time"))
+            {
+                res.status = 400;
+                res.set_content("{\"error\":\"missing time parameter\"}", "application/json");
+                return;
+            }
+            targetTime = std::stod(req.get_param_value("time"));
+        }
+        catch (const std::exception&)
+        {
+            res.status = 400;
+            res.set_content("{\"error\":\"invalid time parameter\"}", "application/json");
+            return;
+        }
+
+        player.seek(targetTime);
+        std::lock_guard<std::mutex> lock(appMutex);
+        res.set_content(
+            buildCombinedJson(components, controller.getState(), player.getStatus()),
+            "application/json");
+    });
+
+    // POST /load — transcribe audio file and load timeline into AudioPlayer
+    svr.Post("/load", [&controller, &player, &transcriber, &appMutex, &components](const httplib::Request& req, httplib::Response& res)
+    {
+        std::string filePath = req.get_param_value("file");
+        if (filePath.empty())
+        {
+            filePath = req.body;
+        }
+
+        if (filePath.empty())
+        {
+            res.status = 400;
+            res.set_content("{\"error\":\"missing file parameter\"}", "application/json");
+            return;
+        }
+
+        std::vector<NoteEvent> notes = transcriber.transcribe(filePath);
+        player.load(notes);
+
+        std::lock_guard<std::mutex> lock(appMutex);
+        res.set_content(
+            buildCombinedJson(components, controller.getState(), player.getStatus()),
+            "application/json");
+    });
+
+    // GET /events — Server-Sent Events stream of state and player status
+    svr.Get("/events", [&controller, &player, &appMutex, &components](const httplib::Request&, httplib::Response& res)
+    {
+        res.set_header("Cache-Control", "no-cache");
+        res.set_header("Connection", "keep-alive");
+
+        res.set_chunked_content_provider(
+            "text/event-stream",
+            [&controller, &player, &appMutex, &components](std::size_t, httplib::DataSink& sink)
+            {
+                if (!sink.is_writable())
+                {
+                    return false;
+                }
+
+                std::string json;
+                {
+                    std::lock_guard<std::mutex> lock(appMutex);
+                    json = buildCombinedJson(components, controller.getState(), player.getStatus());
+                }
+
+                std::string payload = "data: " + json + "\n\n";
+                if (!sink.write(payload.data(), payload.size()))
+                {
+                    return false;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(40));
+                return true;
+            });
     });
 
     std::cout << "Starting server on http://localhost:8080" << std::endl;

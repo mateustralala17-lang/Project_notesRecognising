@@ -68,3 +68,10 @@ struct IntervalCommand
     int distance;             ///< Distance in semitones.
     std::string intervalType; ///< Descriptive name of the interval.
 };
+
+struct NoteEvent
+{
+    double start;
+    double end;
+    int pitch;
+};

@@ -86,3 +86,9 @@ void AppController::release(const IntervalCommand &interval)
     }
     updateAll();
 }
+
+void AppController::releaseAll()
+{
+    currentState.releaseAll();
+    updateAll();
+}

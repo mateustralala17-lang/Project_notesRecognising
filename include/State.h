@@ -36,11 +36,17 @@ class State
         /// @param interval IntervalData descriptor to remove.
         void removeInterval(const IntervalData& interval);
 
+        /// @brief Clears all active MIDI pitches from state.
+        void clearSelectedPitches();
+
         /// @brief Clears all recognized chords from state.
         void clearSelectedChords();
 
         /// @brief Clears all recognized intervals from state.
         void clearSelectedIntervals();
+
+        /// @brief Clears all active pitches, chords, and intervals from state.
+        void releaseAll();
 
         /// @brief Accesses the set of active MIDI pitches.
         /// @return Immutable reference to the active pitch set.

@@ -39,3 +39,6 @@ app.py
 basicPitch.py
 test_audio.mp3
 bench.exe
+test.mp3
+PROMPT_audio_player.md
+PROMPT_web_player.md
