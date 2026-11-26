@@ -77,7 +77,7 @@ Web-інтерфейс написано на JavaScript, який через к�
 ![Діаграма архітектури бекенду](./images/Architecture2.png)
 
 ## Діаграма послідовності (Sequence Diagram)
-![Діаграма послідовності](./images/Sequence_Diagram.png)
+![Діаграма послідовності](./images/Sequence_diagram.png)
 
 # Фінальний звіт:
 ## Додано:
